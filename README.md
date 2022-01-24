@@ -19,7 +19,7 @@ In the main folder, run:
 ## Download model
 If you want to test the framework immediately, you can download pre-trained [Pykeen](https://github.com/pykeen/pykeen) models by running:
 
-    source download_models.sh
+    source download_model.sh
 
 ## Generate behavioral tests
 
