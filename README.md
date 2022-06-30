@@ -7,7 +7,7 @@ The framework and experimental results are described in [Ben Rim et al. 2021](ht
 
 ## Create a virtual environment 
 
-	virtualenv -p python3.6 eval_env
+	virtualenv -p python3.8 eval_env
 	source eval_env/bin/activate
 	pip install -r requirements.txt
 

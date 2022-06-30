@@ -159,6 +159,7 @@ import pandas as pd
 import collections
 import torch
 import pathlib
+import sys
 from symmetry.utils import logger as l
 
 """
@@ -208,9 +209,9 @@ def get_triples(data, test_location, dataset_name, model_name):
   test_location: a string of the location of a test set
   model_location: a string of the location of the model you want to test
   """
-  training = TriplesFactory(path=data[dataset_name]["train"].absolute().as_posix())
-  testing = TriplesFactory(
-      path= test_location,
+  training = TriplesFactory.from_path(data[dataset_name]["train"].absolute().as_posix())
+  testing = TriplesFactory.from_path(
+      test_location,
       entity_to_id=training.entity_to_id,
       relation_to_id=training.relation_to_id,
   )
@@ -222,6 +223,13 @@ def get_triples(data, test_location, dataset_name, model_name):
     raise
   triples = testing.triples
   return training, triples, model
+
+def print_progress_bar(index, total, label):
+    n_bar = 50  
+    progress = index / total
+    sys.stdout.write('\r')
+    sys.stdout.write(f"[{'=' * int(n_bar * progress):{n_bar}s}] {int(100 * progress)}%  {label}")
+    sys.stdout.flush()
 
 def get_prediction_results(logger, data, model_name, tests_path, test, dataset_name):
   """
@@ -240,16 +248,16 @@ def get_prediction_results(logger, data, model_name, tests_path, test, dataset_n
   for t in range(len(triples)):
     if triples[t][0] in training.entity_to_id.keys() and triples[t][1] in training.relation_to_id.keys():
       head, relation, expected_tail = triples[t][0], triples[t][1], triples[t][2]
-      _predictions = pd.DataFrame(model.predict_tails(str(head), str(relation)).to_numpy())[1].values
+      _predictions = model.get_tail_prediction_df(head, relation,triples_factory=training)['tail_label'].values
 
-      filter_out = dataset_filters.get((head, relation), [])
-      filter_out = list(filter(lambda prediction: prediction != expected_tail, filter_out))
+      filter_out = list(filter(lambda prediction: prediction != expected_tail,  dataset_filters.get((head, relation), [])))
       filtered = list(filter(lambda prediction: prediction not in filter_out, _predictions))
 
       for i in range(len(filtered)): #this loop looks for the rank of the expected tail in the array of predictions
         if filtered[i] == expected_tail:
             ranks.append(i+1)
             break
+    print_progress_bar(t, len(triples), "Triples tested")
   return ranks
 
 
@@ -275,9 +283,9 @@ def report_results(logger, data, dataset_name, model_name, test, symmetry=True):
   results_path = path / 'results' / dataset_name / 'symmetry' / (test+'.csv')
   with results_path.open("w", encoding ="utf-8") as f:
     f.write(f"Results of {model_name} model on {dataset_name} dataset\n: on {test}, MR: {mean_rank}, MRR: {mean_reciprocal_rank}, Hits@1: {hits_at[0]}, Hits@5: {hits_at[1]}, Hits@10: {hits_at[2]}")
+  print("\n")
   logger.info(f"On {test}, MR: {mean_rank}, MRR: {mean_reciprocal_rank}, Hits@1: {hits_at[0]}, Hits@5: {hits_at[1]}, Hits@10: {hits_at[2]}")
-  
- 
+
 def get_metrics(ranks, symmetric=True):
   """
   Params
