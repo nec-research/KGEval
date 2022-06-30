@@ -1,4 +1,5 @@
 results/
 models/
 data/
+behavioral_tests/
 eval_env/
